@@ -1,0 +1,13 @@
+#!/bin/sh
+# Faz o hotspot do celular funcionar em roaming no macOS.
+# TTL/hop limit 65 esconde o compartilhamento; MTU 1400 cabe no túnel do roaming.
+set -e
+i=$(route -n get default 2>/dev/null | awk '/interface/{print $2}')
+[ -n "$i" ] || { echo "sem conexão ativa"; exit 1; }
+
+case "$1" in
+  on)  sudo sysctl -qw net.inet.ip.ttl=65 net.inet6.ip6.hlim=65; sudo ifconfig "$i" mtu 1400; echo "roaming on ($i)" ;;
+  off) sudo sysctl -qw net.inet.ip.ttl=64 net.inet6.ip6.hlim=64; sudo ifconfig "$i" mtu 1500; echo "roaming off ($i)" ;;
+  status) echo "ttl=$(sysctl -n net.inet.ip.ttl) hlim=$(sysctl -n net.inet6.ip6.hlim) $i $(ifconfig "$i" | awk '/mtu/{for(k=1;k<NF;k++) if($k=="mtu"){print "mtu=" $(k+1); exit}}')" ;;
+  *) echo "uso: roaming on|off|status"; exit 1 ;;
+esac
